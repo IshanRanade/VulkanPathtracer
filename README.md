@@ -10,4 +10,6 @@
 3. `cd` to the root of the directory
 4. `mkdir build`
 5. `cd build`
-6. `cmake ../src` 
+6. `cmake ..`
+7. `make`
+8. `./VulkanPathtracer`
