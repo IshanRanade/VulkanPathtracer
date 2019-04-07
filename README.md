@@ -8,8 +8,9 @@
 2. Set the environment variable VULKAN_SDK=/pathtodownloadedsdk/macOS: <br/>
 `export VULKAN_SDK=/pathtodownloadedsdk/macOS`
 3. `cd` to the root of the directory
-4. `mkdir build`
-5. `cd build`
-6. `cmake ..`
-7. `make`
-8. `./VulkanPathtracer`
+4. `brew install glfw`
+5. `mkdir build`
+6. `cd build`
+7. `cmake ..`
+8. `make`
+9. `./VulkanPathtracer`
