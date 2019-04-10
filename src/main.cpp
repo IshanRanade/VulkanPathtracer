@@ -1,40 +1,63 @@
 #include <iostream>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <imgui/imgui.h>
+// #include <glm/glm.hpp>
+// #include <glm/gtc/matrix_transform.hpp>
+// #include <imgui/imgui.h>
+#define GLFW_INCLUDE_VULKAN
+// #include <vulkan/vulkan.h>
+#include <GLFW/glfw3.h>
+
 
 int main() {
-    std::cout << "hello" << std::endl;
-    glm::vec3 x = glm::vec3(0.0f);
-    std::cout << x.x << std::endl;
-    
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO();
-    
-    // Build atlas
-    unsigned char* tex_pixels = NULL;
-    int tex_w, tex_h;
-    io.Fonts->GetTexDataAsRGBA32(&tex_pixels, &tex_w, &tex_h);
-    
-    for (int n = 0; n < 10; n++)
-    {
-        printf("NewFrame() %d\n", n);
-        io.DisplaySize = ImVec2(1920, 1080);
-        io.DeltaTime = 1.0f / 60.0f;
-        ImGui::NewFrame();
-        
-        static float f = 0.0f;
-        ImGui::Text("Hello, world!");
-        ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
-        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
-        ImGui::ShowDemoWindow(NULL);
-        
-        ImGui::Render();
+    // Setup GLFW window
+    if (!glfwInit()) {
+        return 1;
     }
     
-    printf("DestroyContext()\n");
-    ImGui::DestroyContext();
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    GLFWwindow* window = glfwCreateWindow(1280, 720, "Dear ImGui GLFW+Vulkan example", NULL, NULL);
+    
+    // Setup Vulkan
+    if (!glfwVulkanSupported())
+    {
+        printf("GLFW: Vulkan Not Supported\n");
+        return 1;
+    }
+
+    std::cout << "done" << std::endl;
+    
+    // uint32_t extensions_count = 0;
+    // const char** extensions = glfwGetRequiredInstanceExtensions(&extensions_count);
+//    std::cout << "hello" << std::endl;
+//    glm::vec3 x = glm::vec3(0.0f);
+//    std::cout << x.x << std::endl;
+//
+//    IMGUI_CHECKVERSION();
+//    ImGui::CreateContext();
+//    ImGuiIO& io = ImGui::GetIO();
+//
+//    // Build atlas
+//    unsigned char* tex_pixels = NULL;
+//    int tex_w, tex_h;
+//    io.Fonts->GetTexDataAsRGBA32(&tex_pixels, &tex_w, &tex_h);
+//
+//    for (int n = 0; n < 10; n++)
+//    {
+//        printf("NewFrame() %d\n", n);
+//        io.DisplaySize = ImVec2(1920, 1080);
+//        io.DeltaTime = 1.0f / 60.0f;
+//        ImGui::NewFrame();
+//
+//        static float f = 0.0f;
+//        ImGui::Text("Hello, world!");
+//        ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
+//        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+//        ImGui::ShowDemoWindow(NULL);
+//
+//        ImGui::Render();
+//    }
+//
+//    printf("DestroyContext()\n");
+//    ImGui::DestroyContext();
     
     return 0;
 }
