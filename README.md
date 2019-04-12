@@ -31,8 +31,10 @@ You need to run this command in the terminal window that you use to run cmake so
 
 #### Run through Xcode
 https://vulkan.lunarg.com/doc/sdk/1.1.92.1/mac/getting_started.html
-1. `cmake -G Xcode ..
-2. Open Xcode project, run through Xcode
+1. `cmake -G Xcode ..`
+2. Open Xcode project
 3. Press Command + Shift + <, this allows you to edit the Scheme for this project.  Add to the arguments tab the following environment variables: <br/> 
-VK_ICD_FILENAMES = /pathtosdk/macOS/etc/vulkan/icd.d/MoltenVK_icd.json
+VK_ICD_FILENAMES = /pathtosdk/macOS/etc/vulkan/icd.d/MoltenVK_icd.json <br/>
 VK_LAYER_PATH = /pathtosdk/macOS/etc/vulkan/explicit_layer.d
+4. Set the correct Scheme at the top to be VulkanPathtracer
+5. Press Play button, run normally through Xcode
