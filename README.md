@@ -27,6 +27,9 @@ You need to run this command in the terminal window that you use to run cmake so
 #### Run normally
 1. `cmake ..`
 2. `make`
+3. Set the following environment variables through the command line in the same terminal you will use to run the program. <br/>
+`export VK_ICD_FILENAMES = /pathtosdk/macOS/etc/vulkan/icd.d/MoltenVK_icd.json` <br/>
+`export VK_LAYER_PATH = /pathtosdk/macOS/etc/vulkan/explicit_layer.d`
 3. `./VulkanPathtracer`
 
 #### Run through Xcode
