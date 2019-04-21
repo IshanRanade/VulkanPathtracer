@@ -179,6 +179,8 @@ static void ShowDemoWindowMisc();
 // You may execute this function to experiment with the UI and understand what it does. You may then search for keywords in the code when you are interested by a specific feature.
 void ImGui::ShowDemoWindow(bool* p_open)
 {
+    IM_ASSERT(ImGui::GetCurrentContext() != NULL && "Missing dear imgui context. Refer to examples app!"); // Exceptionally add an extra assert here for people confused with initial dear imgui setup
+
     // Examples Apps (accessible from the "Examples" menu)
     static bool show_app_documents = false;
     static bool show_app_main_menu_bar = false;
@@ -250,7 +252,6 @@ void ImGui::ShowDemoWindow(bool* p_open)
         ImGui::End();
         return;
     }
-    ImGui::Text("dear imgui says hello. (%s)", IMGUI_VERSION);
 
     // Most "big" widgets share a common width settings by default.
     //ImGui::PushItemWidth(ImGui::GetWindowWidth() * 0.65f);    // Use 2/3 of the space for widgets and 1/3 for labels (default)
@@ -290,7 +291,9 @@ void ImGui::ShowDemoWindow(bool* p_open)
         ImGui::EndMenuBar();
     }
 
+    ImGui::Text("dear imgui says hello. (%s)", IMGUI_VERSION);
     ImGui::Spacing();
+
     if (ImGui::CollapsingHeader("Help"))
     {
         ImGui::Text("PROGRAMMER GUIDE:");
@@ -547,9 +550,8 @@ static void ShowDemoWindowWidgets()
             ImGui::ListBox("listbox\n(single select)", &listbox_item_current, listbox_items, IM_ARRAYSIZE(listbox_items), 4);
 
             //static int listbox_item_current2 = 2;
-            //ImGui::PushItemWidth(-1);
+            //ImGui::SetNextItemWidth(-1);
             //ImGui::ListBox("##listbox2", &listbox_item_current2, listbox_items, IM_ARRAYSIZE(listbox_items), 4);
-            //ImGui::PopItemWidth();
         }
 
         ImGui::TreePop();
@@ -1049,7 +1051,8 @@ static void ShowDemoWindowWidgets()
         };
         static int func_type = 0, display_count = 70;
         ImGui::Separator();
-        ImGui::PushItemWidth(100); ImGui::Combo("func", &func_type, "Sin\0Saw\0"); ImGui::PopItemWidth();
+        ImGui::SetNextItemWidth(100);
+        ImGui::Combo("func", &func_type, "Sin\0Saw\0");
         ImGui::SameLine();
         ImGui::SliderInt("Sample count", &display_count, 1, 400);
         float (*func)(void*, int) = (func_type == 0) ? Funcs::Sin : Funcs::Saw;
@@ -1531,7 +1534,9 @@ static void ShowDemoWindowWidgets()
         ImGui::RadioButton("SliderFloat", &item_type, 3);
         ImGui::RadioButton("InputText", &item_type, 4);
         ImGui::RadioButton("ColorEdit4", &item_type, 5);
-        ImGui::RadioButton("ListBox", &item_type, 6);
+        ImGui::RadioButton("MenuItem", &item_type, 6);
+        ImGui::RadioButton("TreeNode (w/ double-click)", &item_type, 7);
+        ImGui::RadioButton("ListBox", &item_type, 8);
         ImGui::Separator();
         bool ret = false;
         if (item_type == 0) { ImGui::Text("ITEM: Text"); }                                              // Testing text items with no identifier/interaction
@@ -1540,7 +1545,9 @@ static void ShowDemoWindowWidgets()
         if (item_type == 3) { ret = ImGui::SliderFloat("ITEM: SliderFloat", &col4f[0], 0.0f, 1.0f); }   // Testing basic item
         if (item_type == 4) { ret = ImGui::InputText("ITEM: InputText", &str[0], IM_ARRAYSIZE(str)); }  // Testing input text (which handles tabbing)
         if (item_type == 5) { ret = ImGui::ColorEdit4("ITEM: ColorEdit4", col4f); }                     // Testing multi-component items (IsItemXXX flags are reported merged)
-        if (item_type == 6) { const char* items[] = { "Apple", "Banana", "Cherry", "Kiwi" }; static int current = 1; ret = ImGui::ListBox("ITEM: ListBox", &current, items, IM_ARRAYSIZE(items), IM_ARRAYSIZE(items)); }
+        if (item_type == 6) { ret = ImGui::MenuItem("ITEM: MenuItem"); }                                // Testing menu item (they use ImGuiButtonFlags_PressedOnRelease button policy)
+        if (item_type == 7) { ret = ImGui::TreeNodeEx("ITEM: TreeNode w/ ImGuiTreeNodeFlags_OpenOnDoubleClick", ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_NoTreePushOnOpen); } // Testing tree node with ImGuiButtonFlags_PressedOnDoubleClick button policy.
+        if (item_type == 8) { const char* items[] = { "Apple", "Banana", "Cherry", "Kiwi" }; static int current = 1; ret = ImGui::ListBox("ITEM: ListBox", &current, items, IM_ARRAYSIZE(items), IM_ARRAYSIZE(items)); }
         ImGui::BulletText(
             "Return value = %d\n"
             "IsItemFocused() = %d\n"
@@ -1555,6 +1562,7 @@ static void ShowDemoWindowWidgets()
             "IsItemDeactivated() = %d\n"
             "IsItemDeactivatedAfterEdit() = %d\n"
             "IsItemVisible() = %d\n"
+            "IsItemClicked() = %d\n"
             "GetItemRectMin() = (%.1f, %.1f)\n"
             "GetItemRectMax() = (%.1f, %.1f)\n"
             "GetItemRectSize() = (%.1f, %.1f)",
@@ -1571,6 +1579,7 @@ static void ShowDemoWindowWidgets()
             ImGui::IsItemDeactivated(),
             ImGui::IsItemDeactivatedAfterEdit(),
             ImGui::IsItemVisible(),
+            ImGui::IsItemClicked(),
             ImGui::GetItemRectMin().x, ImGui::GetItemRectMin().y,
             ImGui::GetItemRectMax().x, ImGui::GetItemRectMax().y,
             ImGui::GetItemRectSize().x, ImGui::GetItemRectSize().y
@@ -1658,9 +1667,8 @@ static void ShowDemoWindowLayout()
         static int line = 50;
         bool goto_line = ImGui::Button("Goto");
         ImGui::SameLine();
-        ImGui::PushItemWidth(100);
+        ImGui::SetNextItemWidth(100);
         goto_line |= ImGui::InputInt("##Line", &line, 0, 0, ImGuiInputTextFlags_EnterReturnsTrue);
-        ImGui::PopItemWidth();
 
         // Child 1: no border, enable horizontal scrollbar
         {
@@ -1731,35 +1739,36 @@ static void ShowDemoWindowLayout()
 
     if (ImGui::TreeNode("Widgets Width"))
     {
+        // Use SetNextItemWidth() to set the width of a single upcoming item.
+        // Use PushItemWidth()/PopItemWidth() to set the width of a group of items.
         static float f = 0.0f;
-        ImGui::Text("PushItemWidth(100)");
+        ImGui::Text("SetNextItemWidth/PushItemWidth(100)");
         ImGui::SameLine(); HelpMarker("Fixed width.");
-        ImGui::PushItemWidth(100);
+        ImGui::SetNextItemWidth(100);
         ImGui::DragFloat("float##1", &f);
-        ImGui::PopItemWidth();
 
-        ImGui::Text("PushItemWidth(GetWindowWidth() * 0.5f)");
+        ImGui::Text("SetNextItemWidth/PushItemWidth(GetWindowWidth() * 0.5f)");
         ImGui::SameLine(); HelpMarker("Half of window width.");
-        ImGui::PushItemWidth(ImGui::GetWindowWidth() * 0.5f);
+        ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.5f);
         ImGui::DragFloat("float##2", &f);
-        ImGui::PopItemWidth();
 
-        ImGui::Text("PushItemWidth(GetContentRegionAvailWidth() * 0.5f)");
+        ImGui::Text("SetNextItemWidth/PushItemWidth(GetContentRegionAvailWidth() * 0.5f)");
         ImGui::SameLine(); HelpMarker("Half of available width.\n(~ right-cursor_pos)\n(works within a column set)");
-        ImGui::PushItemWidth(ImGui::GetContentRegionAvailWidth() * 0.5f);
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvailWidth() * 0.5f);
         ImGui::DragFloat("float##3", &f);
-        ImGui::PopItemWidth();
 
-        ImGui::Text("PushItemWidth(-100)");
+        ImGui::Text("SetNextItemWidth/PushItemWidth(-100)");
         ImGui::SameLine(); HelpMarker("Align to right edge minus 100");
-        ImGui::PushItemWidth(-100);
+        ImGui::SetNextItemWidth(-100);
         ImGui::DragFloat("float##4", &f);
-        ImGui::PopItemWidth();
 
-        ImGui::Text("PushItemWidth(-1)");
+        // Demonstrate using PushItemWidth to surround three items. Calling SetNextItemWidth() before each of them would have the same effect.
+        ImGui::Text("SetNextItemWidth/PushItemWidth(-1)");
         ImGui::SameLine(); HelpMarker("Align to right edge");
         ImGui::PushItemWidth(-1);
-        ImGui::DragFloat("float##5", &f);
+        ImGui::DragFloat("float##5a", &f);
+        ImGui::DragFloat("float##5b", &f);
+        ImGui::DragFloat("float##5c", &f);
         ImGui::PopItemWidth();
 
         ImGui::TreePop();
@@ -2232,9 +2241,8 @@ static void ShowDemoWindowPopups()
         {
             if (ImGui::Selectable("Set to zero")) value = 0.0f;
             if (ImGui::Selectable("Set to PI")) value = 3.1415f;
-            ImGui::PushItemWidth(-1);
+            ImGui::SetNextItemWidth(-1);
             ImGui::DragFloat("##Value", &value, 0.1f, 0.0f, 0.0f);
-            ImGui::PopItemWidth();
             ImGui::EndPopup();
         }
 
@@ -2959,7 +2967,7 @@ void ImGui::ShowStyleEditor(ImGuiStyle* ref)
                 }
                 ImGui::LogFinish();
             }
-            ImGui::SameLine(); ImGui::PushItemWidth(120); ImGui::Combo("##output_type", &output_dest, "To Clipboard\0To TTY\0"); ImGui::PopItemWidth();
+            ImGui::SameLine(); ImGui::SetNextItemWidth(120); ImGui::Combo("##output_type", &output_dest, "To Clipboard\0To TTY\0");
             ImGui::SameLine(); ImGui::Checkbox("Only Modified Colors", &output_only_modified);
 
             static ImGuiTextFilter filter;
@@ -3798,12 +3806,11 @@ static void ShowExampleAppPropertyEditor(bool* p_open)
                         ImGui::AlignTextToFramePadding();
                         ImGui::TreeNodeEx("Field", ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_Bullet, "Field_%d", i);
                         ImGui::NextColumn();
-                        ImGui::PushItemWidth(-1);
+                        ImGui::SetNextItemWidth(-1);
                         if (i >= 5)
                             ImGui::InputFloat("##value", &dummy_members[i], 1.0f);
                         else
                             ImGui::DragFloat("##value", &dummy_members[i], 0.01f);
-                        ImGui::PopItemWidth();
                         ImGui::NextColumn();
                     }
                     ImGui::PopID();
@@ -3943,10 +3950,10 @@ static void ShowExampleAppConstrainedResize(bool* p_open)
         if (ImGui::Button("200x200")) { ImGui::SetWindowSize(ImVec2(200, 200)); } ImGui::SameLine();
         if (ImGui::Button("500x500")) { ImGui::SetWindowSize(ImVec2(500, 500)); } ImGui::SameLine();
         if (ImGui::Button("800x200")) { ImGui::SetWindowSize(ImVec2(800, 200)); }
-        ImGui::PushItemWidth(200);
+        ImGui::SetNextItemWidth(200);
         ImGui::Combo("Constraint", &type, desc, IM_ARRAYSIZE(desc));
+        ImGui::SetNextItemWidth(200);
         ImGui::DragInt("Lines", &display_lines, 0.2f, 1, 100);
-        ImGui::PopItemWidth();
         ImGui::Checkbox("Auto-resize", &auto_resize);
         for (int i = 0; i < display_lines; i++)
             ImGui::Text("%*sHello, sailor! Making this line long enough for the example.", i * 4, "");
@@ -4259,15 +4266,15 @@ void ShowExampleAppDocuments(bool* p_open)
 {
     static ExampleAppDocuments app;
 
+    // Options
+    static bool opt_reorderable = true;
+    static ImGuiTabBarFlags opt_fitting_flags = ImGuiTabBarFlags_FittingPolicyDefault_;
+
     if (!ImGui::Begin("Example: Documents", p_open, ImGuiWindowFlags_MenuBar))
     {
         ImGui::End();
         return;
     }
-
-    // Options
-    static bool opt_reorderable = true;
-    static ImGuiTabBarFlags opt_fitting_flags = ImGuiTabBarFlags_FittingPolicyDefault_;
 
     // Menu
     if (ImGui::BeginMenuBar())
@@ -4392,12 +4399,14 @@ void ShowExampleAppDocuments(bool* p_open)
             if (ImGui::BeginPopupModal("Save?"))
             {
                 ImGui::Text("Save change to the following items?");
-                ImGui::PushItemWidth(-1.0f);
-                ImGui::ListBoxHeader("##", close_queue_unsaved_documents, 6);
-                for (int n = 0; n < close_queue.Size; n++)
-                    if (close_queue[n]->Dirty)
-                        ImGui::Text("%s", close_queue[n]->Name);
-                ImGui::ListBoxFooter();
+                ImGui::SetNextItemWidth(-1.0f);
+                if (ImGui::ListBoxHeader("##", close_queue_unsaved_documents, 6))
+                {
+                    for (int n = 0; n < close_queue.Size; n++)
+                        if (close_queue[n]->Dirty)
+                            ImGui::Text("%s", close_queue[n]->Name);
+                    ImGui::ListBoxFooter();
+                }
 
                 if (ImGui::Button("Yes", ImVec2(80, 0)))
                 {
