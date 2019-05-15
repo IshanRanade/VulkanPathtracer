@@ -19,6 +19,13 @@ static VkDebugReportCallbackEXT g_DebugReport = VK_NULL_HANDLE;
 static VkPipelineCache          g_PipelineCache = VK_NULL_HANDLE;
 static VkDescriptorPool         g_DescriptorPool = VK_NULL_HANDLE;
 
+static uint32_t                 c_QueueFamily = (uint32_t)-1;
+static VkQueue                  c_Queue = VK_NULL_HANDLE;
+static VkDebugReportCallbackEXT c_DebugReport = VK_NULL_HANDLE;
+static VkPipelineCache          c_PipelineCache = VK_NULL_HANDLE;
+static VkDescriptorPool         c_DescriptorPool = VK_NULL_HANDLE;
+
+
 static ImGui_ImplVulkanH_Window g_MainWindowData;
 static int                      g_MinImageCount = 2;
 static bool                     g_SwapChainRebuild = false;
@@ -64,33 +71,55 @@ static void SetupVulkan(const char** extensions, uint32_t extensions_count) {
         free(gpus);
     }
     
-    // Select graphics queue family
+    // Select graphics and compute queue family
     {
         uint32_t count;
         vkGetPhysicalDeviceQueueFamilyProperties(g_PhysicalDevice, &count, NULL);
         VkQueueFamilyProperties* queues = (VkQueueFamilyProperties*)malloc(sizeof(VkQueueFamilyProperties) * count);
         vkGetPhysicalDeviceQueueFamilyProperties(g_PhysicalDevice, &count, queues);
-        for (uint32_t i = 0; i < count; i++)
+        for (uint32_t i = 0; i < count; i++) {
             if (queues[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
             {
                 g_QueueFamily = i;
+            }
+        
+            if (queues[i].queueFlags & VK_QUEUE_COMPUTE_BIT)
+            {
+                c_QueueFamily = i;
+            }
+            
+            if (c_QueueFamily != (uint32_t)-1 && g_QueueFamily != (uint32_t)-1) {
                 break;
             }
+        }
+        
         free(queues);
         IM_ASSERT(g_QueueFamily != (uint32_t)-1);
+        IM_ASSERT(c_QueueFamily != (uint32_t)-1);
     }
     
     // Create logical device
     {
         int device_extension_count = 1;
         const char* device_extensions[] = { "VK_KHR_swapchain" };
-        const float queue_priority[] = { 1.0f };
-        VkDeviceQueueCreateInfo queue_info[1] = {};
+        
+        const float queue_priority_graphics = 1.0f;
+        const float queue_priority_compute = 1.0f;
+        
+        VkDeviceQueueCreateInfo queue_info[2] = {};
+        
         queue_info[0].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
         queue_info[0].queueFamilyIndex = g_QueueFamily;
         queue_info[0].queueCount = 1;
-        queue_info[0].pQueuePriorities = queue_priority;
+        queue_info[0].pQueuePriorities = &queue_priority_graphics;
+        
+        queue_info[1].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queue_info[1].queueFamilyIndex = c_QueueFamily;
+        queue_info[1].queueCount = 1;
+        queue_info[1].pQueuePriorities = &queue_priority_compute;
+        
         VkDeviceCreateInfo create_info = {};
+        
         create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
         create_info.queueCreateInfoCount = sizeof(queue_info) / sizeof(queue_info[0]);
         create_info.pQueueCreateInfos = queue_info;
@@ -292,7 +321,7 @@ int main() {
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    ImGuiIO& io = ImGui::GetIO(); //(void)io;
     
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
@@ -343,9 +372,10 @@ int main() {
         ImGui_ImplVulkan_DestroyFontUploadObjects();
     }
     
-    bool show_demo_window = true;
-    bool show_another_window = false;
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+    
+    // Now create the pathtracer
+    
     
     // Main loop
     while (!glfwWindowShouldClose(window))
@@ -369,43 +399,6 @@ int main() {
         ImGui_ImplVulkan_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
-        
-        // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-        if (show_demo_window)
-            ImGui::ShowDemoWindow(&show_demo_window);
-        
-        // 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
-        {
-            static float f = 0.0f;
-            static int counter = 0;
-            
-            ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
-            
-            ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-            ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-            ImGui::Checkbox("Another Window", &show_another_window);
-            
-            ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-            ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
-            
-            if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-                counter++;
-            ImGui::SameLine();
-            ImGui::Text("counter = %d", counter);
-            
-            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-            ImGui::End();
-        }
-        
-        // 3. Show another simple window.
-        if (show_another_window)
-        {
-            ImGui::Begin("Another Window", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-            ImGui::Text("Hello from another window!");
-            if (ImGui::Button("Close Me"))
-                show_another_window = false;
-            ImGui::End();
-        }
         
         // Rendering
         ImGui::Render();

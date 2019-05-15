@@ -26,8 +26,16 @@ set(IMGUI_SOURCES
 
 set(CPP_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/pathtracer.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/pathtracer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/utilities.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/utilities.cpp
 )
 
 add_executable(${CMAKE_PROJECT_NAME} ${CPP_SOURCES} ${IMGUI_SOURCES})
+
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}"
+    PREFIX "Source Files"
+    FILES ${CPP_SOURCES} ${IMGUI_SOURCES})
 
 target_link_libraries(${CMAKE_PROJECT_NAME} glfw ${Vulkan_LIBRARIES})
