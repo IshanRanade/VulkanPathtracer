@@ -1,6 +1,6 @@
-#include <vulkan/vulkan.h>
-
 #pragma once
+
+#include <vulkan/vulkan.h>
 
 class PathTracer {
 public:

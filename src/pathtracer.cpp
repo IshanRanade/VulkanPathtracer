@@ -2,6 +2,7 @@
 #include <vector>
 #include "utilities.h"
 
+
 PathTracer::PathTracer(int width, int height, VkPhysicalDevice physicalDevice)
 : width(width), height(height), physicalDevice(physicalDevice) {
     
@@ -40,5 +41,3 @@ void PathTracer::getComputeQueueFamilyIndex() {
     
     queueFamilyIndex = i;
 }
-
-
