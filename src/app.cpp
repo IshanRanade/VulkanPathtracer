@@ -3,6 +3,97 @@
 #include "utilities.h"
 
 
+App::App() {
+    // Setup GLFW window
+    if (!glfwInit()) {
+        throw std::runtime_error("Could not initialize glfw");
+    }
+    
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    window = glfwCreateWindow(1280, 720, "Dear ImGui GLFW+Vulkan example", NULL, NULL);
+    
+    // Setup Vulkan
+    if (!glfwVulkanSupported())
+    {
+        throw std::runtime_error("GLFW: Vulkan Not Supported");
+    }
+    
+    uint32_t extensions_count = 0;
+    const char** extensions = glfwGetRequiredInstanceExtensions(&extensions_count);
+    
+    SetupVulkan(extensions, extensions_count);
+    
+    // Create Window Surface
+    VkSurfaceKHR surface;
+    err = glfwCreateWindowSurface(g_Instance, window, g_Allocator, &surface);
+    check_vk_result(err);
+    
+    // Create Framebuffers
+    int w, h;
+    glfwGetFramebufferSize(window, &w, &h);
+    //glfwSetFramebufferSizeCallback(window, &App::glfw_resize_callback);
+    wd = &g_MainWindowData;
+    SetupVulkanWindow(wd, surface, w, h);
+    
+    // Setup Dear ImGui context
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    
+    // Setup Dear ImGui style
+    ImGui::StyleColorsDark();
+    
+    // Setup Platform/Renderer bindings
+    ImGui_ImplGlfw_InitForVulkan(window, true);
+    ImGui_ImplVulkan_InitInfo init_info = {};
+    init_info.Instance = g_Instance;
+    init_info.PhysicalDevice = g_PhysicalDevice;
+    init_info.Device = g_Device;
+    init_info.QueueFamily = g_QueueFamily;
+    init_info.Queue = g_Queue;
+    init_info.PipelineCache = g_PipelineCache;
+    init_info.DescriptorPool = g_DescriptorPool;
+    init_info.Allocator = g_Allocator;
+    init_info.MinImageCount = g_MinImageCount;
+    init_info.ImageCount = wd->ImageCount;
+    //init_info.CheckVkResultFn = check_vk_result;
+    ImGui_ImplVulkan_Init(&init_info, wd->RenderPass);
+    
+    // Upload Fonts
+    {
+        // Use any command queue
+        VkCommandPool command_pool = wd->Frames[wd->FrameIndex].CommandPool;
+        VkCommandBuffer command_buffer = wd->Frames[wd->FrameIndex].CommandBuffer;
+        
+        err = vkResetCommandPool(g_Device, command_pool, 0);
+        check_vk_result(err);
+        VkCommandBufferBeginInfo begin_info = {};
+        begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        begin_info.flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+        err = vkBeginCommandBuffer(command_buffer, &begin_info);
+        check_vk_result(err);
+        
+        ImGui_ImplVulkan_CreateFontsTexture(command_buffer);
+        
+        VkSubmitInfo end_info = {};
+        end_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        end_info.commandBufferCount = 1;
+        end_info.pCommandBuffers = &command_buffer;
+        err = vkEndCommandBuffer(command_buffer);
+        check_vk_result(err);
+        err = vkQueueSubmit(g_Queue, 1, &end_info, VK_NULL_HANDLE);
+        check_vk_result(err);
+        
+        err = vkDeviceWaitIdle(g_Device);
+        check_vk_result(err);
+        ImGui_ImplVulkan_DestroyFontUploadObjects();
+    }
+    
+    clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+    
+    // Now create the pathtracer
+    
+}
+
 void App::check_vk_result(VkResult err) {
     if (err == 0) return;
     printf("VkResult %d\n", err);
@@ -251,97 +342,6 @@ void App::glfw_resize_callback(GLFWwindow*, int w, int h)
 }
 
 int App::start() {
-    // Setup GLFW window
-    if (!glfwInit()) {
-        return 1;
-    }
-    
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    GLFWwindow* window = glfwCreateWindow(1280, 720, "Dear ImGui GLFW+Vulkan example", NULL, NULL);
-    
-    // Setup Vulkan
-    if (!glfwVulkanSupported())
-    {
-        printf("GLFW: Vulkan Not Supported\n");
-        return 1;
-    }
-    
-    uint32_t extensions_count = 0;
-    const char** extensions = glfwGetRequiredInstanceExtensions(&extensions_count);
-    
-    SetupVulkan(extensions, extensions_count);
-    
-    // Create Window Surface
-    VkSurfaceKHR surface;
-    VkResult err = glfwCreateWindowSurface(g_Instance, window, g_Allocator, &surface);
-    check_vk_result(err);
-    
-    // Create Framebuffers
-    int w, h;
-    glfwGetFramebufferSize(window, &w, &h);
-    //glfwSetFramebufferSizeCallback(window, &App::glfw_resize_callback);
-    ImGui_ImplVulkanH_Window* wd = &g_MainWindowData;
-    SetupVulkanWindow(wd, surface, w, h);
-    
-    // Setup Dear ImGui context
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO(); //(void)io;
-    
-    // Setup Dear ImGui style
-    ImGui::StyleColorsDark();
-    
-    // Setup Platform/Renderer bindings
-    ImGui_ImplGlfw_InitForVulkan(window, true);
-    ImGui_ImplVulkan_InitInfo init_info = {};
-    init_info.Instance = g_Instance;
-    init_info.PhysicalDevice = g_PhysicalDevice;
-    init_info.Device = g_Device;
-    init_info.QueueFamily = g_QueueFamily;
-    init_info.Queue = g_Queue;
-    init_info.PipelineCache = g_PipelineCache;
-    init_info.DescriptorPool = g_DescriptorPool;
-    init_info.Allocator = g_Allocator;
-    init_info.MinImageCount = g_MinImageCount;
-    init_info.ImageCount = wd->ImageCount;
-    //init_info.CheckVkResultFn = check_vk_result;
-    ImGui_ImplVulkan_Init(&init_info, wd->RenderPass);
-    
-    // Upload Fonts
-    {
-        // Use any command queue
-        VkCommandPool command_pool = wd->Frames[wd->FrameIndex].CommandPool;
-        VkCommandBuffer command_buffer = wd->Frames[wd->FrameIndex].CommandBuffer;
-        
-        err = vkResetCommandPool(g_Device, command_pool, 0);
-        check_vk_result(err);
-        VkCommandBufferBeginInfo begin_info = {};
-        begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        begin_info.flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-        err = vkBeginCommandBuffer(command_buffer, &begin_info);
-        check_vk_result(err);
-        
-        ImGui_ImplVulkan_CreateFontsTexture(command_buffer);
-        
-        VkSubmitInfo end_info = {};
-        end_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        end_info.commandBufferCount = 1;
-        end_info.pCommandBuffers = &command_buffer;
-        err = vkEndCommandBuffer(command_buffer);
-        check_vk_result(err);
-        err = vkQueueSubmit(g_Queue, 1, &end_info, VK_NULL_HANDLE);
-        check_vk_result(err);
-        
-        err = vkDeviceWaitIdle(g_Device);
-        check_vk_result(err);
-        ImGui_ImplVulkan_DestroyFontUploadObjects();
-    }
-    
-    ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-    
-    // Now create the pathtracer
-    
-    
     // Main loop
     while (!glfwWindowShouldClose(window))
     {

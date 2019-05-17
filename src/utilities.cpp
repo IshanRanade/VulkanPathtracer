@@ -1,6 +1,7 @@
 #include "utilities.h"
 #include <fstream>
 
+
 std::vector<char> readFile(const std::string& filename) {
     std::ifstream file(filename, std::ios::ate | std::ios::binary);
 

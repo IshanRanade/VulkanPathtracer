@@ -9,6 +9,10 @@
 #include <vulkan/vulkan.h>
 #include <imgui/imgui_impl_glfw.h>
 #include <imgui/imgui_impl_vulkan.h>
+#include <exception>
+#include <stdexcept>
+
+#include "pathtracer.h"
 
 
 class App {
@@ -29,12 +33,20 @@ public:
     VkPipelineCache          c_PipelineCache = VK_NULL_HANDLE;
     VkDescriptorPool         c_DescriptorPool = VK_NULL_HANDLE;
     
+    GLFWwindow *window;
+    ImGui_ImplVulkanH_Window* wd;
+    ImVec4 clear_color;
+    VkResult err;
+    
+    PathTracer *pathtracer;
     
     ImGui_ImplVulkanH_Window g_MainWindowData;
     int                      g_MinImageCount = 2;
     bool                     g_SwapChainRebuild = false;
     int                      g_SwapChainResizeWidth = 0;
     int                      g_SwapChainResizeHeight = 0;
+    
+    App();
     
     void check_vk_result(VkResult err);
     void SetupVulkan(const char** extensions, uint32_t extensions_count);

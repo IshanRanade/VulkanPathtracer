@@ -2,6 +2,7 @@
 
 #include <vulkan/vulkan.h>
 
+
 class PathTracer {
 public:
     int width;
